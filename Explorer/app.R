@@ -36,7 +36,7 @@ ui <- fluidPage(
 server <- function(input, output) {
   output$onlyCurrent <- renderText({input$onlyCurrent})
   output$groupingVars <- renderText({input$groupingVars})
-  results <- evals %>% filter(Available == {input$onlyCurrent})
+  results <- evals %>% dplyr::filter(Available == {input$onlyCurrent})
   output$results <- DT::renderDataTable({results})
 }
 
