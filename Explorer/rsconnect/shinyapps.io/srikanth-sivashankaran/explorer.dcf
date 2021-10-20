@@ -1,0 +1,11 @@
+name: explorer
+title:
+username:
+account: srikanth-sivashankaran
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4919454
+bundleId: 5160141
+url: https://srikanth-sivashankaran.shinyapps.io/explorer/
+when: 1634764790.5935
+lastSyncTime: 1634764790.59351
