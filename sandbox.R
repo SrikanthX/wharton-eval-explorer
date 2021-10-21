@@ -6,7 +6,7 @@ evals <- evals %>%
   mutate(Department = substr(Section,1,4)) %>%
   mutate(Year = zoo::as.yearmon(as.numeric(substr(Term,1,4)))) %>%
   mutate(Available = Course %in% availableElectives)
-evals <- evals[,c(16:19,1:15)]
+evals <- evals[,c(16:20,1:15)]
 courseTitles <- evals %>%
   group_by(Course) %>%
   summarise(Title = max(Title))
