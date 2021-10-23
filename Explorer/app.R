@@ -3,14 +3,15 @@ library(tidyverse)
 library(gmodels)
 
 # releaseNotes
-releaseNotes <- "Version 0.2: added how recently prof taught \n and selecting WEMBA West and East is now an \"or\" rather than an and. \n Version 0.3: added course selector"
+releaseNotes <- "Version 0.2: added how recently prof taught and selecting WEMBA West and East is now an or rather than an and."
+releaseNotes <- c(releaseNotes,"Version 0.3: added course selector")
+releaseNotes <- c(releaseNotes,"Version 0.4: fixed some column headings going missing")
+
 # prepare the evals
 evals <- data.table::fread("./data/wharton_reports_wharton-course-evaluations.csv",header=T)
 
 availableElectivesWest <- c("ACCT706","ACCT747","BEPP770","FNCE703","FNCE705","FNCE707","FNCE717","FNCE731","FNCE738","FNCE750","FNCE751","FNCE754","FNCE756","FNCE780","FNCE783","FNCE791","FNCE802","FNCE811","HCMG841","HCMG845","HCMG850","HCMG852","HCMG860","HCMG867","LGST642","LGST813","LGST815","MGMT624","MGMT671","MGMT701","MGMT721","MGMT731","MGMT748","MGMT794","MGMT801","MGMT802","MGMT804","MGMT806","MGMT809","MGMT811","MGMT812","MGMT871","MKTG711","MKTG712","MKTG721","MKTG739","MKTG747","MKTG754","MKTG777","MKTG778","MKTG852","OIDD613","OIDD614","OIDD615","OIDD636","OIDD643","OIDD653","OIDD654","OIDD662","OIDD667","OIDD673","REAL890","REAL891","STAT701","STAT722","ACCT897","BEPP763","BEPP773","LGST693","LGST806","MGMT690","MGMT793","MKTG776","OIDD761","REAL721")
 availableElectivesEast <- c("ACCT706","ACCT747","ACCT897","FNCE797","BEPP763","OIDD763","BEPP770","BEPP773","FNCE730","REAL730","FNCE717","FNCE705","FNCE703","FNCE707","FNCE731","FNCE738","FNCE750","FNCE751","FNCE754","FNCE756","FNCE783","FNCE791","FNCE802","FNCE811","FNCE780","HCMG841","HCMG845","HCMG850","HCMG852","HCMG860","HCMG867","LGST642","LGST693","OIDD693","LGST806","MGMT691","OIDD691","LGST809","MGMT815","LGST813","LGST815","MGMT624","MGMT671","MGMT690","OIDD690","MGMT701","MGMT720","MGMT721","MGMT731","MGMT740","MGMT748","MGMT793","OIDD793","MGMT794","MGMT801","MGMT802","MGMT804","MGMT806","MGMT809","MGMT811","MGMT812","MGMT871","MKTG711","MKTG712","MKTG721","MKTG739","MKTG747","MKTG754","MKTG776","STAT476","MKTG777","MKTG778","MKTG852","OIDD613","OIDD614","OIDD615","OIDD636","OIDD643","OIDD653","OIDD654","OIDD662","OIDD667","OIDD673","OIDD761","BEPP761","REAL721","FNCE721","REAL890","REAL891","STAT701","STAT722")
-
-
 
 evals <- evals %>%
   mutate(Course = substr(Section,1,7)) %>% 
@@ -78,7 +79,9 @@ ui <- fluidPage(
                                     selected="Mean")
                  ),
     mainPanel(DT::dataTableOutput("results"),
-              h4(releaseNotes))
+              p(releaseNotes[1]),
+              p(releaseNotes[2]),
+              p(releaseNotes[3])) 
   )
 )
 
@@ -153,12 +156,13 @@ server <- function(input, output) {
   orderedResults <- reactive({
     results() %>%
       {if(length(classes())>0) filter(., Course %in% classes()) else . } %>%
-      select(groupingVars(),contains("Title"),"n",matches("(.*Overall.*)|(.*Instructor Ability.*)|(.*Instructor Access.*)|(.*Value.*)|(.*Learned.*)|(.*Rate.*)|(.*Would.*)"),matches("^Most recent term.*"))
+      select(groupingVars(),contains("Title"),"n",matches("(.*Overall.*)|(.*Instructor Ability.*)|(.*Instructor Access.*)|(.*Value.*)|(.*Learned.*)|(.*Rate.*)|(.*Would.*)|(mean)|(min)|(max)|(ninetyfiveciLow)|(ninetyfiveciHigh)"),matches("^Most recent term.*"))
   })
   output$groupingVars <- renderText(input$groupingVars)
   output$analysisVarsPattern <- renderText(analysisVarsPattern())
   output$results <- DT::renderDataTable(orderedResults())
   output$functions <- renderText(functions())
+  output$withCounts <- DT::renderDataTable(withCounts())
 }
 
 # Run the app ----
