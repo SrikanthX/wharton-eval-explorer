@@ -6,6 +6,8 @@ library(gmodels)
 releaseNotes <- "Version 0.2: added how recently prof taught and selecting WEMBA West and East is now an or rather than an and."
 releaseNotes <- c(releaseNotes,"Version 0.3: added course selector")
 releaseNotes <- c(releaseNotes,"Version 0.4: fixed some column headings going missing")
+releaseNotes <- c(releaseNotes,"Version 0.5: course names are clickable -> full description")
+releaseNotes <- c(releaseNotes,"Version 0.6: added electives without evaluation data")
 
 # prepare the evals
 evals <- data.table::fread("./data/wharton_reports_wharton-course-evaluations.csv",header=T)
@@ -21,6 +23,35 @@ evals <- evals %>%
   mutate(AvailableEast = Course %in% availableElectivesEast) %>%
   mutate(WEMBAEast = ifelse(substr(Section,8,9) == "70",T,F)) %>% 
   mutate(WEMBAWest = ifelse(substr(Section,8,9) == "75",T,F)) 
+
+getUrlStringFromCourseId <- function(courseId){
+  paste("<a href='https://catalog.upenn.edu/search/?P=",
+        substr(courseId,1,4),
+        "%20",
+        substr(courseId,5,7),
+        "'>",
+        courseId,
+        "</a>",
+        sep="")  
+}
+
+getUrlStringFromCourseId <- Vectorize(getUrlStringFromCourseId)
+
+unevaluatedCourses <- union(availableElectivesEast %>%
+        as_tibble() %>%
+        filter(!value %in%  evals$Course) %>% pull(value)
+, availableElectivesWest %>%
+  as_tibble() %>%
+  filter(!value %in% evals$Course) %>% pull(value)) %>%
+  as_tibble() %>%
+  rename(Course = value) %>%
+  mutate(`Offered to WEMBA East` = Course %in% availableElectivesEast) %>%
+  mutate(`Offered to WEMBA West` = Course %in% availableElectivesWest) %>%
+  mutate(Course = getUrlStringFromCourseId(Course))
+  
+  
+
+
 
 evals <- evals[,c(16:22,1:15)]
 
@@ -39,6 +70,8 @@ getTermStringFromTermIdentifier <- function(termId) {
 }
 
 getTermStringFromTermIdentifier <- Vectorize(getTermStringFromTermIdentifier)
+
+
 
 lastTaught <- evals %>%
           group_by(Instructor) %>%
@@ -78,10 +111,21 @@ ui <- fluidPage(
                                     choices = c("Mean","Min","Max","95ci"),
                                     selected="Mean")
                  ),
-    mainPanel(DT::dataTableOutput("results"),
-              p(releaseNotes[1]),
-              p(releaseNotes[2]),
-              p(releaseNotes[3])) 
+    mainPanel(
+      tabsetPanel(type = "pills",
+        tabPanel("Evaluation data",
+                 DT::dataTableOutput("results"),
+                 p("Release Notes:"),
+                 p(releaseNotes[1]),
+                 p(releaseNotes[2]),
+                 p(releaseNotes[3]),
+                 p(releaseNotes[4]),
+                 p(releaseNotes[5])
+                 ),
+        tabPanel("Electives without evaluation data",
+                 DT::datatable(unevaluatedCourses,escape=F))
+      )
+    )
   )
 )
 
@@ -158,11 +202,22 @@ server <- function(input, output) {
       {if(length(classes())>0) filter(., Course %in% classes()) else . } %>%
       select(groupingVars(),contains("Title"),"n",matches("(.*Overall.*)|(.*Instructor Ability.*)|(.*Instructor Access.*)|(.*Value.*)|(.*Learned.*)|(.*Rate.*)|(.*Would.*)|(mean)|(min)|(max)|(ninetyfiveciLow)|(ninetyfiveciHigh)"),matches("^Most recent term.*"))
   })
-  output$groupingVars <- renderText(input$groupingVars)
-  output$analysisVarsPattern <- renderText(analysisVarsPattern())
-  output$results <- DT::renderDataTable(orderedResults())
-  output$functions <- renderText(functions())
-  output$withCounts <- DT::renderDataTable(withCounts())
+  hyperlinkedOrderedResults <- reactive({
+    if("Course" %in% groupingVars()){
+      orderedResults () %>%
+        mutate(Course = paste("<a href='https://catalog.upenn.edu/search/?P=",
+                              substr(Course,1,4),
+                              "%20",
+                              substr(Course,5,7),
+                              "'>",
+                              Course,
+                              "</a>",
+                              sep=""))
+    }else{
+      orderedResults()
+    }
+  })
+  output$results <- DT::renderDataTable(hyperlinkedOrderedResults(),escape=F)
 }
 
 # Run the app ----

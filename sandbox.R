@@ -8,7 +8,7 @@ availableElectivesEast <- c("ACCT706","ACCT747","ACCT897","FNCE797","BEPP763","O
 
 evals <- evals %>%
   mutate(Course = substr(Section,1,7)) %>% 
-  mutate(Department = substr(Section,1,4)) %>%
+  mutate(Department = substr(Section,1,4))
   mutate(Year = zoo::as.yearmon(as.numeric(substr(Term,1,4)))) %>%
   mutate(AvailableWest = Course %in% availableElectivesWest) %>%
   mutate(AvailableEast = Course %in% availableElectivesEast) %>%
